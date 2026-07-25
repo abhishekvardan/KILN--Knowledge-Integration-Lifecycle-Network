@@ -1,14 +1,23 @@
 {
-  "name": "agenthub-cli",
+  "name": "kiln",
   "version": "0.1.0",
-  "description": "Command-line client for AgentHub",
+  "description": "KILN CLI — Knowledge Integration & Lifecycle Network",
   "type": "module",
   "bin": {
-    "ah": "./dist/index.js"
+    "kiln": "./dist/index.js"
   },
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kiln-cli/kiln.git"
+  },
+  "homepage": "https://github.com/kiln-cli/kiln#readme",
+  "bugs": {
+    "url": "https://github.com/kiln-cli/kiln/issues"
+  },
+  "keywords": ["kiln", "ai", "agents", "agent-packages", "knowledge-lifecycle"],
   "engines": {
     "node": ">=20"
   },

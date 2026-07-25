@@ -1,6 +1,6 @@
 import type { Agent } from "../types.js";
 
-/** HTTP boundary for the AgentHub registry. Mocked until networking is introduced. */
+/** HTTP boundary for the KILN registry. Mocked until networking is introduced. */
 export class RegistryService {
   private readonly catalog: Agent[] = [
     { name: "github-reviewer", description: "Reviews pull requests for common issues.", version: "1.0.0" },

@@ -1,7 +1,7 @@
-export class AgentHubError extends Error {
+export class KilnError extends Error {
   public constructor(message: string, public readonly cause?: unknown) {
     super(message);
-    this.name = "AgentHubError";
+    this.name = "KilnError";
   }
 }
 

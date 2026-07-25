@@ -27,7 +27,7 @@ import { toErrorMessage } from "./utils/errors.js";
 import { output } from "./utils/output.js";
 
 const program = new Command(); const config = new ConfigService(); const registry = new RegistryService(); const packages = new PackageService(); const cache = new CacheService();
-program.name("ah").description("AgentHub CLI").version("0.1.0").showSuggestionAfterError();
+program.name("kiln").description("KILN CLI\nKnowledge Integration & Lifecycle Network").version("0.1.0").showSuggestionAfterError();
 program.hook("preAction", async () => config.initialize());
 registerSearchCommand(program, registry); registerInstallCommand(program, config, packages); registerListCommand(program, config); registerRemoveCommand(program, config); registerPublishCommand(program, registry); registerLoginCommand(program, config); registerLogoutCommand(program, config); registerDoctorCommand(program, config); registerInitCommand(program, packages); registerValidateCommand(program, packages); registerPackCommand(program, packages); registerInfoCommand(program, config);
 registerInspectCommand(program, config, packages); registerUnpackCommand(program, packages); registerLintCommand(program, packages); registerUpdateCommand(program); registerUninstallCommand(program, config); registerCacheCommand(program, config, cache); registerConfigCommand(program, config);

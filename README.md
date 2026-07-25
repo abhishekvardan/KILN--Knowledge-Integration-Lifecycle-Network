@@ -1,13 +1,15 @@
-# AgentHub CLI
+# KILN CLI
 
-`ah` is the AgentHub command-line client. Its registry integration is deliberately mocked, so the command architecture can be exercised without network access. Local packages use the dedicated `.agent` extension (internally ZIP-based, intentionally opaque to users).
+Knowledge Integration & Lifecycle Network.
+
+`kiln` is the command-line client for creating, validating, packaging, and managing AI-agent packages. Registry behavior is intentionally mocked so the local package architecture can be exercised without network access. Packages use the dedicated `.agent` extension; their `agent.yaml` manifest format is unchanged.
 
 ## Usage
 
 ```sh
 npm install
 npm run dev -- search reviewer
-npm run dev -- install github-reviewer
+npm run dev -- install github-reviewer.agent
 npm run dev -- list
 ```
 
@@ -15,15 +17,13 @@ Create and distribute a local package:
 
 ```sh
 mkdir github-reviewer && cd github-reviewer
-npm run dev -- init
-npm run dev -- validate
-npm run dev -- pack
-npm run dev -- install github-reviewer-0.1.0.agent
-npm run dev -- info github-reviewer
+kiln init
+kiln validate
+kiln pack
+kiln install github-reviewer-0.1.0.agent
+kiln info github-reviewer
 ```
 
-Additional local-package commands include `inspect`, `unpack`, and `lint`. Use `ah inspect <name>` for an installed package or pass an archive/directory. `ah unpack` validates archive paths during extraction to block Zip Slip attacks.
+Use `kiln inspect <name>` for an installed package or pass an archive/directory. `kiln unpack` validates archive paths during extraction to block Zip Slip attacks. Build the CLI with `npm run build`, then run `kiln --help`.
 
-Build and run the compiled CLI with `npm run build` then `npm start -- doctor`.
-
-Configuration is initialized at `~/.agenthub` with `config.json`, `installed.json`, and `agents/`.
+Configuration is initialized at `~/.kiln` with `config.json`, `installed.json`, `agents/`, and `cache/`.

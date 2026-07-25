@@ -7,7 +7,7 @@ import { pipeline } from "node:stream/promises";
 import unzipper from "unzipper";
 import YAML from "yaml";
 import { AgentManifestSchema, type AgentManifest } from "./AgentManifest.js";
-import { AgentHubError } from "../utils/errors.js";
+import { KilnError } from "../utils/errors.js";
 
 const PACKAGE_EXTENSION = ".agent";
 const REQUIRED_DIRECTORIES = ["prompts", "workflows", "src"];
@@ -17,7 +17,7 @@ export class PackageService {
   public async inspect(source: string): Promise<AgentManifest> {
     const path = resolve(source);
     if (extname(path) !== PACKAGE_EXTENSION) return this.validateProject(path);
-    const staging = await mkdtemp(join(tmpdir(), "agenthub-inspect-"));
+    const staging = await mkdtemp(join(tmpdir(), "kiln-inspect-"));
     try { await this.extractArchive(path, staging); return await this.validateProject(staging); }
     finally { await rm(staging, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); }
   }
@@ -45,16 +45,16 @@ export class PackageService {
     const manifestPath = join(root, "agent.yaml");
     let raw: string;
     try { raw = await readFile(manifestPath, "utf8"); }
-    catch (error) { throw new AgentHubError(`Missing required manifest: ${manifestPath}`, error); }
+    catch (error) { throw new KilnError(`Missing required manifest: ${manifestPath}`, error); }
     let parsed: unknown;
-    try { parsed = YAML.parse(raw); } catch (error) { throw new AgentHubError("agent.yaml contains invalid YAML.", error); }
+    try { parsed = YAML.parse(raw); } catch (error) { throw new KilnError("agent.yaml contains invalid YAML.", error); }
     const validation = AgentManifestSchema.safeParse(parsed);
-    if (!validation.success) throw new AgentHubError(`Invalid agent.yaml: ${validation.error.issues.map((i) => `${i.path.join(".") || "manifest"} ${i.message}`).join("; ")}`);
+    if (!validation.success) throw new KilnError(`Invalid agent.yaml: ${validation.error.issues.map((i) => `${i.path.join(".") || "manifest"} ${i.message}`).join("; ")}`);
     for (const directory of REQUIRED_DIRECTORIES) {
       try { if (!(await stat(join(root, directory))).isDirectory()) throw new Error(); }
-      catch { throw new AgentHubError(`Missing required directory: ${directory}/`); }
+      catch { throw new KilnError(`Missing required directory: ${directory}/`); }
     }
-    try { await access(join(root, "README.md")); } catch { throw new AgentHubError("Missing required file: README.md"); }
+    try { await access(join(root, "README.md")); } catch { throw new KilnError("Missing required file: README.md"); }
     return validation.data;
   }
 
@@ -79,22 +79,22 @@ export class PackageService {
   /** Installs an archive source. Future remote downloads can save to a temp path and use this same method. */
   public async installArchive(archivePath: string, agentsDirectory: string): Promise<{ manifest: AgentManifest; directory: string }> {
     const source = resolve(archivePath);
-    if (extname(source) !== PACKAGE_EXTENSION) throw new AgentHubError(`Expected a ${PACKAGE_EXTENSION} package.`);
-    try { await access(source); } catch { throw new AgentHubError(`Package not found: ${source}`); }
-    const staging = await mkdtemp(join(tmpdir(), "agenthub-"));
+    if (extname(source) !== PACKAGE_EXTENSION) throw new KilnError(`Expected a ${PACKAGE_EXTENSION} package.`);
+    try { await access(source); } catch { throw new KilnError(`Package not found: ${source}`); }
+    const staging = await mkdtemp(join(tmpdir(), "kiln-"));
     try {
       await this.extractArchive(source, staging);
       const manifest = await this.validateProject(staging);
       const target = join(agentsDirectory, manifest.name);
       await rm(target, { recursive: true, force: true }); await cp(staging, target, { recursive: true, filter: (from) => !IGNORED_DIRECTORIES.has(basename(from)) });
       return { manifest, directory: target };
-    } catch (error) { if (error instanceof AgentHubError) throw error; throw new AgentHubError("Unable to install package. The archive may be corrupt.", error); }
+    } catch (error) { if (error instanceof KilnError) throw error; throw new KilnError("Unable to install package. The archive may be corrupt.", error); }
     finally { await rm(staging, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); }
   }
 
   public async scaffold(projectDirectory = process.cwd()): Promise<AgentManifest> {
     const root = resolve(projectDirectory); const entries = await readdir(root);
-    if (entries.length) throw new AgentHubError("Refusing to initialize a non-empty directory.");
+    if (entries.length) throw new KilnError("Refusing to initialize a non-empty directory.");
     const name = basename(root).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "my-agent";
     const manifest: AgentManifest = { name, version: "0.1.0", description: "Describe what this agent does." };
     await Promise.all(REQUIRED_DIRECTORIES.map((directory) => import("node:fs/promises").then(({ mkdir }) => mkdir(join(root, directory), { recursive: true }))));
@@ -106,17 +106,17 @@ export class PackageService {
 
   /** Extracts only entries whose canonical destination remains inside destination (Zip Slip protection). */
   private async extractArchive(archivePath: string, destination: string): Promise<void> {
-    const source = resolve(archivePath); if (extname(source) !== PACKAGE_EXTENSION) throw new AgentHubError(`Expected a ${PACKAGE_EXTENSION} package.`);
-    try { await access(source); } catch { throw new AgentHubError(`Package not found: ${source}`); }
+    const source = resolve(archivePath); if (extname(source) !== PACKAGE_EXTENSION) throw new KilnError(`Expected a ${PACKAGE_EXTENSION} package.`);
+    try { await access(source); } catch { throw new KilnError(`Package not found: ${source}`); }
     try {
       const archive = await unzipper.Open.file(source);
       for (const entry of archive.files) {
         const entryPath = entry.path.replace(/\\/g, "/");
         const target = resolve(destination, entryPath); const traversal = relative(destination, target);
-        if (isAbsolute(entryPath) || traversal === ".." || traversal.startsWith(`..${sep}`) || isAbsolute(traversal)) throw new AgentHubError(`Unsafe archive entry rejected: ${entry.path}`);
+        if (isAbsolute(entryPath) || traversal === ".." || traversal.startsWith(`..${sep}`) || isAbsolute(traversal)) throw new KilnError(`Unsafe archive entry rejected: ${entry.path}`);
         if (entry.type === "Directory") { await mkdir(target, { recursive: true }); continue; }
         await mkdir(dirname(target), { recursive: true }); await pipeline(entry.stream(), createWriteStream(target));
       }
-    } catch (error) { if (error instanceof AgentHubError) throw error; throw new AgentHubError("Unable to extract package. The archive may be corrupt.", error); }
+    } catch (error) { if (error instanceof KilnError) throw error; throw new KilnError("Unable to extract package. The archive may be corrupt.", error); }
   }
 }
