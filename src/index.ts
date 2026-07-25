@@ -1,0 +1,34 @@
+#!/usr/bin/env node
+import { Command } from "commander";
+import { registerDoctorCommand } from "./commands/doctor.js";
+import { registerInstallCommand } from "./commands/install.js";
+import { registerInfoCommand } from "./commands/info.js";
+import { registerInitCommand } from "./commands/init.js";
+import { registerListCommand } from "./commands/list.js";
+import { registerLoginCommand } from "./commands/login.js";
+import { registerLogoutCommand } from "./commands/logout.js";
+import { registerPublishCommand } from "./commands/publish.js";
+import { registerPackCommand } from "./commands/pack.js";
+import { registerRemoveCommand } from "./commands/remove.js";
+import { registerSearchCommand } from "./commands/search.js";
+import { registerValidateCommand } from "./commands/validate.js";
+import { registerUpdateCommand } from "./commands/update.js";
+import { registerUninstallCommand } from "./commands/uninstall.js";
+import { registerInspectCommand } from "./commands/package/inspect.js";
+import { registerUnpackCommand } from "./commands/package/unpack.js";
+import { registerLintCommand } from "./commands/package/lint.js";
+import { registerCacheCommand } from "./commands/system/cache.js";
+import { registerConfigCommand } from "./commands/system/config.js";
+import { CacheService } from "./services/CacheService.js";
+import { ConfigService } from "./services/ConfigService.js";
+import { PackageService } from "./services/PackageService.js";
+import { RegistryService } from "./services/RegistryService.js";
+import { toErrorMessage } from "./utils/errors.js";
+import { output } from "./utils/output.js";
+
+const program = new Command(); const config = new ConfigService(); const registry = new RegistryService(); const packages = new PackageService(); const cache = new CacheService();
+program.name("ah").description("AgentHub CLI").version("0.1.0").showSuggestionAfterError();
+program.hook("preAction", async () => config.initialize());
+registerSearchCommand(program, registry); registerInstallCommand(program, config, packages); registerListCommand(program, config); registerRemoveCommand(program, config); registerPublishCommand(program, registry); registerLoginCommand(program, config); registerLogoutCommand(program, config); registerDoctorCommand(program, config); registerInitCommand(program, packages); registerValidateCommand(program, packages); registerPackCommand(program, packages); registerInfoCommand(program, config);
+registerInspectCommand(program, config, packages); registerUnpackCommand(program, packages); registerLintCommand(program, packages); registerUpdateCommand(program); registerUninstallCommand(program, config); registerCacheCommand(program, config, cache); registerConfigCommand(program, config);
+program.parseAsync().catch((error: unknown) => { output.error(toErrorMessage(error)); process.exitCode = 1; });
