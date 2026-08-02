@@ -1,23 +1,45 @@
 {
-  "name": "kiln",
+  "name": "@abhishekvardanbotta/kiln",
   "version": "0.1.0",
   "description": "KILN CLI — Knowledge Integration & Lifecycle Network",
   "type": "module",
+  "license": "MIT",
+  "author": "Abhishek Vardan Botta",
   "bin": {
-    "kiln": "./dist/index.js"
+    "kiln": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kiln-cli/kiln.git"
+    "url": "git+https://github.com/abhishekvardanbotta/kiln.git"
   },
-  "homepage": "https://github.com/kiln-cli/kiln#readme",
+  "homepage": "https://github.com/abhishekvardanbotta/kiln#readme",
   "bugs": {
-    "url": "https://github.com/kiln-cli/kiln/issues"
+    "url": "https://github.com/abhishekvardanbotta/kiln/issues"
   },
-  "keywords": ["kiln", "ai", "agents", "agent-packages", "knowledge-lifecycle"],
+  "keywords": [
+    "kiln",
+    "cli",
+    "ai",
+    "agent",
+    "agents",
+    "framework",
+    "runtime",
+    "workflow",
+    "orchestration",
+    "llm",
+    "openai",
+    "claude",
+    "gemini",
+    "groq"
+  ],
   "engines": {
     "node": ">=20"
   },

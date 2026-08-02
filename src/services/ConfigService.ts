@@ -11,12 +11,13 @@ export class ConfigService {
   public readonly rootDirectory = join(homedir(), ".kiln");
   public readonly agentsDirectory = join(this.rootDirectory, "agents");
   public readonly cacheDirectory = join(this.rootDirectory, "cache");
+  public readonly templatesDirectory = join(this.rootDirectory, "templates");
   private readonly configPath = join(this.rootDirectory, "config.json");
   private readonly installedPath = join(this.rootDirectory, "installed.json");
 
   public async initialize(): Promise<void> {
     try {
-      await Promise.all([mkdir(this.agentsDirectory, { recursive: true }), mkdir(this.cacheDirectory, { recursive: true })]);
+      await Promise.all([mkdir(this.agentsDirectory, { recursive: true }), mkdir(this.cacheDirectory, { recursive: true }), mkdir(this.templatesDirectory, { recursive: true })]);
       await this.ensureFile(this.configPath, DEFAULT_CONFIG);
       await this.ensureFile(this.installedPath, DEFAULT_INSTALLED);
     } catch (error) {

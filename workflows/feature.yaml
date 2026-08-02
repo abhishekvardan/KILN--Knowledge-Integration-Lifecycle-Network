@@ -1,0 +1,21 @@
+id: feature
+nodes:
+  - id: architect
+    type: agent
+    dependsOn: []
+  - id: backend
+    type: agent
+    dependsOn:
+      - architect
+  - id: frontend
+    type: agent
+    dependsOn:
+      - backend
+  - id: reviewer
+    type: agent
+    dependsOn:
+      - frontend
+  - id: qa
+    type: agent
+    dependsOn:
+      - reviewer

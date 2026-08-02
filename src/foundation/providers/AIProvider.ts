@@ -1,0 +1,1 @@
+export interface AIProvider { readonly name: string; chat(): Promise<never>; stream(): Promise<never>; toolCall(): Promise<never>; embeddings(): Promise<never>; vision(): Promise<never>; audio(): Promise<never>; json(): Promise<never>; }

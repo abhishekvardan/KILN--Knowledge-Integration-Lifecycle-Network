@@ -1,0 +1,12 @@
+name: runtime-smoke-test
+version: 0.1.0
+description: Describe what this agent does.
+publisher: your-publisher
+license: MIT
+runtime: prompt
+entrypoint: prompts/system.md
+keywords: []
+permissions: []
+compatibility: {}
+variables: {}
+dependencies: {}

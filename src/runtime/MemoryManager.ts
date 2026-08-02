@@ -1,0 +1,2 @@
+import type { Memory } from "./interfaces/Memory.js";
+export class MemoryManager { private readonly stores = new Map<string, Memory>(); register(memory: Memory) { this.stores.set(memory.name, memory); } resolve(name: "short-term" | "long-term" | "vector" | "project") { return this.stores.get(name); } async update(context: Record<string, unknown>) { const store = this.resolve("short-term"); if (store) await store.set("latest", context); } }

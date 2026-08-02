@@ -1,0 +1,8 @@
+import { Command } from "commander";
+import ora from "ora";
+import chalk from "chalk";
+import { RuntimeService } from "../services/RuntimeService.js";
+import { RuntimeEngine } from "../runtime/RuntimeEngine.js";
+import { LocalAgentExecutor } from "../services/LocalAgentExecutor.js";
+import { toErrorMessage } from "../utils/errors.js";
+export function registerRunCommand(program: Command, runtime: RuntimeService, engine: RuntimeEngine, executor: LocalAgentExecutor): void { program.command("run <package>").option("--query <query>", "Agent query input").option("--limit <number>", "Maximum result count", "5").description("Execute an installed local agent").action(async (name: string, options: { query?: string; limit: string }) => { const spinner = ora("Loading package...").start(); try { spinner.text = "Building execution plan..."; const base = await runtime.buildExecutionPlan(name); spinner.text = "Executing runtime lifecycle..."; const result = await engine.execute({ ...base, tools: [], graph: [] }); spinner.text = "Executing local agent..."; const output = await executor.execute(await runtime.getInstalledPackageDirectory(name), { query: options.query, limit: Number(options.limit) }); spinner.succeed("Agent execution completed."); console.log(chalk.cyan("Execution Graph")); result.plan.graph.forEach((node) => console.log(`- ${node.label}: ${node.status}`)); console.log(chalk.cyan("\nAgent Output")); console.log(typeof output === "object" && output !== null && "markdown" in output ? String((output as { markdown: unknown }).markdown) : JSON.stringify(output, null, 2)); } catch (error) { spinner.fail(toErrorMessage(error)); throw error; } finally { if (spinner.isSpinning) spinner.stop(); } }); }

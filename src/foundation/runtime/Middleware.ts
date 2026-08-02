@@ -1,0 +1,3 @@
+export interface FoundationContext { executionId: string; request: string; prompt: string; metadata: Record<string, unknown>; }
+export interface RuntimeMiddleware { readonly name: string; execute(context: FoundationContext, next: () => Promise<void>): Promise<void>; }
+export class MiddlewarePipeline { public constructor(private readonly middleware: RuntimeMiddleware[]) {} async execute(context: FoundationContext): Promise<void> { let index = -1; const next = async (): Promise<void> => { index += 1; const stage = this.middleware[index]; if (stage) await stage.execute(context, next); }; await next(); } }

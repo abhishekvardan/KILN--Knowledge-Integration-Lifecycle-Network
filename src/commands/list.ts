@@ -1,9 +1,5 @@
 import { Command } from "commander";
+import chalk from "chalk";
 import { ConfigService } from "../services/ConfigService.js";
 import { output } from "../utils/output.js";
-export function registerListCommand(program: Command, config: ConfigService): void {
-  program.command("list").description("List installed agents").action(async () => {
-    const { agents } = await config.getInstalled(); if (!agents.length) return output.info("No agents installed.");
-    agents.forEach((agent) => console.log(`${agent.name} ${agent.version} — ${agent.description}`));
-  });
-}
+export function registerListCommand(program: Command, config: ConfigService): void { program.command("list").description("List installed agents").action(async () => { const { agents } = await config.getInstalled(); if (!agents.length) return output.info("No agents installed."); const headers = ["Name", "Version", "Publisher", "Installed", "Description"]; const rows = agents.map((agent) => [agent.name, agent.version, agent.publisher ?? "—", agent.installedAt ? new Date(agent.installedAt).toLocaleDateString() : "—", agent.description]); const widths = headers.map((header, index) => Math.max(header.length, ...rows.map((row) => row[index].length))); const line = (row: string[]) => row.map((cell, index) => cell.padEnd(widths[index])).join("  "); console.log(chalk.cyan.bold(line(headers))); console.log(chalk.gray(widths.map((width) => "-".repeat(width)).join("  "))); rows.forEach((row) => console.log(line(row))); }); }

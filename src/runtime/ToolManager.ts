@@ -1,0 +1,2 @@
+import type { Tool } from "./interfaces/Tool.js"; import { RuntimeRegistry } from "./RuntimeRegistry.js";
+export class ToolManager { public constructor(private readonly registry: RuntimeRegistry) {} register(tool: Tool) { this.registry.registerTool(tool); } discover() { return this.registry.toolsList(); } resolveDependencies(permissions: string[]) { return this.discover().filter((tool) => tool.permissions.every((permission) => permissions.includes(permission))); } }

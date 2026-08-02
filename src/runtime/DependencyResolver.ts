@@ -1,0 +1,1 @@
+export class DependencyResolver { resolve(graph: Record<string, string[]>): string[] { const result: string[] = []; const seen = new Set<string>(); const visit = (item: string) => { if (seen.has(item)) return; seen.add(item); (graph[item] ?? []).forEach(visit); result.push(item); }; Object.keys(graph).forEach(visit); return result; } }

@@ -1,0 +1,2 @@
+import { Command } from "commander"; import { WorkflowGenerator } from "../services/WorkflowGenerator.js"; import { output } from "../utils/output.js";
+export function registerWorkflowCommand(program: Command, workflows: WorkflowGenerator): void { const command = program.command("workflow").description("Create reusable workflows"); command.command("create <template>").action(async (template: string) => output.success(`Created ${await workflows.create(template)}`)); }

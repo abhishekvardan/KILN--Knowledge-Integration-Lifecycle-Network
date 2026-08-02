@@ -1,0 +1,8 @@
+default: openai
+providers:
+  openai:
+    model: gpt-5.5
+  gemini:
+    model: gemini-2.5-pro
+  claude:
+    model: claude-sonnet
