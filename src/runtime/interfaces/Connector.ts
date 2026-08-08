@@ -1,1 +1,1 @@
-export interface Connector { readonly name: string; connect(): Promise<void>; authenticate(): Promise<void>; validate(): Promise<void>; disconnect(): Promise<void>; }
+export interface Connector<TConfig = unknown> { readonly name: string; connect(config?: TConfig): Promise<void>; authenticate(): Promise<void>; validate(): Promise<void>; disconnect(): Promise<void>; }

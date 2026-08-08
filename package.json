@@ -1,16 +1,25 @@
 {
   "name": "@abhishekvardanbotta/kiln",
-  "version": "0.1.0",
-  "description": "KILN CLI — Knowledge Integration & Lifecycle Network",
+  "version": "0.2.0",
+  "description": "A CLI + SDK for building and orchestrating AI agents — real provider calls, tool-calling, structured output, MCP, and a DAG orchestrator.",
   "type": "module",
   "license": "MIT",
   "author": "Abhishek Vardan Botta",
   "bin": {
     "kiln": "dist/index.js"
   },
+  "main": "./dist/sdk.js",
+  "types": "./dist/sdk.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/sdk.d.ts",
+      "default": "./dist/sdk.js"
+    }
+  },
   "files": [
     "dist",
     "README.md",
+    "KILN.md",
     "LICENSE"
   ],
   "publishConfig": {
@@ -49,19 +58,26 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/swagger": "^9.8.1",
+    "@fastify/swagger-ui": "^6.1.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "archiver": "^7.0.1",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
+    "fastify": "^5.11.0",
     "ora": "^8.2.0",
+    "tsx": "^4.19.3",
     "unzipper": "^0.12.3",
+    "uuid": "^14.0.1",
     "yaml": "^2.7.0",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@types/archiver": "^6.0.3",
     "@types/node": "^22.13.5",
     "@types/unzipper": "^0.10.11",
-    "tsx": "^4.19.3",
     "typescript": "^5.7.3"
   }
 }

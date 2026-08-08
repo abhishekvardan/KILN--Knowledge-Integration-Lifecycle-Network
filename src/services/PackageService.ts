@@ -104,6 +104,35 @@ export class PackageService {
     finally { await rm(staging, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }); }
   }
 
+  /** Shared body for both `kiln init`'s first agent and `kiln agent add`'s later ones. */
+  private buildAgentFileContent(name: string): string {
+    return `import { defineAgent } from "@kiln/sdk";\nimport type { AgentInput, AgentOutput } from "../types.js";\n\nexport default defineAgent<AgentInput, AgentOutput>({\n  name: "${name}",\n  provider: "openai",\n  model: "gpt-4o-mini",\n  async execute(ctx) {\n    ctx.log("AgentStarted", { input: ctx.input });\n    const result = await ctx.ai.run({\n      messages: [\n        { role: "system", content: "Describe the permanent behavior of the agent." },\n        { role: "user", content: ctx.input.query ?? "" },\n      ],\n    });\n    return { markdown: result.content };\n  },\n});\n`;
+  }
+
+  /** Adds a new agent to an already-scaffolded project without a separate `kiln init` — this is what lets one project hold hundreds of agents. */
+  public async addAgent(projectDirectory: string, agentName: string): Promise<{ path: string; legacySingleAgentPresent: boolean }> {
+    const root = resolve(projectDirectory);
+    if (!/^[a-z][a-z0-9-]*$/.test(agentName)) throw new KilnError("Agent names must be lowercase kebab-case (letters, numbers, hyphens; starting with a letter).");
+    try { await access(join(root, "agent.yaml")); } catch { throw new KilnError(`${root} is not a kiln project (no agent.yaml) — run "kiln init" first.`); }
+    const agentsDir = join(root, "src", "agents");
+    const path = join(agentsDir, `${agentName}.ts`);
+    try { await access(path); throw new KilnError(`Agent "${agentName}" already exists at ${path}.`); } catch (error) { if (error instanceof KilnError) throw error; }
+    await mkdir(agentsDir, { recursive: true });
+    await writeFile(path, this.buildAgentFileContent(agentName));
+    const legacySingleAgentPresent = await access(join(root, "src", "agent.ts")).then(() => true).catch(() => false);
+    return { path, legacySingleAgentPresent };
+  }
+
+  /** Agent names already defined in a project: src/agents/*.ts, or "default" if only the legacy src/agent.ts exists. */
+  public async listAgentFiles(projectDirectory: string): Promise<string[]> {
+    const root = resolve(projectDirectory);
+    try {
+      const files = (await readdir(join(root, "src", "agents"))).filter((file) => extname(file) === ".ts");
+      if (files.length) return files.map((file) => file.slice(0, -extname(file).length)).sort();
+    } catch { /* no src/agents directory */ }
+    return access(join(root, "src", "agent.ts")).then(() => ["default"]).catch(() => []);
+  }
+
   public async scaffold(projectDirectory = process.cwd()): Promise<AgentManifest> {
     const root = resolve(projectDirectory); await mkdir(root, { recursive: true }); const entries = await readdir(root);
     if (entries.length) throw new KilnError("Refusing to initialize a non-empty directory.");
@@ -111,11 +140,12 @@ export class PackageService {
     // agent.yaml deliberately stays metadata-only; runtime defaults preserve compatibility.
     const metadata = { name, version: "0.1.0", description: "Describe what this AI agent does.", author: "", license: "MIT" };
     const manifest: AgentManifest = AgentManifestSchema.parse(metadata);
-    await Promise.all([...REQUIRED_DIRECTORIES, "assets", "tools", "connectors", "knowledge", "memory", "tests", ".kiln", ".kiln/skills"].map((directory) => mkdir(join(root, directory), { recursive: true })));
+    await Promise.all([...REQUIRED_DIRECTORIES, "src/agents", "assets", "tools", "connectors", "knowledge", "memory", "tests", ".kiln", ".kiln/skills"].map((directory) => mkdir(join(root, directory), { recursive: true })));
     await writeFile(join(root, "agent.yaml"), YAML.stringify(metadata));
-    await writeFile(join(root, "README.md"), `# ${name}\n\n${manifest.description}\n\n## KILN\n\nKILN is an AI Agent Engineering Framework. You own the agent logic; KILN supplies the project structure and reusable runtime foundations.\n\n## Where to work\n\n- Business logic: \`src/agent.ts\`\n- Prompts: \`prompts/\`\n- Workflows: \`workflows/\`\n- Tools and connectors: \`tools/\`, \`connectors/\`\n- Project knowledge: \`knowledge/\`\n- Runtime configuration: \`.kiln/*.yaml\`\n\n## Commands\n\n\`kiln validate\` validates the project.\n\`kiln run ${name}\` prepares its execution plan (no AI is invoked).\n\`kiln pack\` creates a distributable package.\n\`kiln install ./<package>.agent\` installs a package locally.\n`);
+    await writeFile(join(root, "README.md"), `# ${name}\n\n${manifest.description}\n\n## KILN\n\nKILN is an AI Agent Engineering Framework. You own the agent logic; KILN supplies the project structure and reusable runtime foundations. One project can hold many agents.\n\n## Where to work\n\n- Business logic: \`src/agents/*.ts\` (one file per agent; add more with \`kiln agent add <name>\`)\n- Prompts: \`prompts/\`\n- Workflows: \`workflows/\`\n- Tools and connectors: \`tools/\`, \`connectors/\`\n- Project knowledge: \`knowledge/\`\n- Runtime configuration: \`.kiln/*.yaml\`\n\n## Commands\n\n\`kiln validate\` validates the project.\n\`kiln agent add <name>\` adds another agent to this same project (no separate \`kiln init\` needed).\n\`kiln agent list\` lists the agents this project defines.\n\`kiln run ${name}\` runs every agent this project defines, concurrently; \`kiln run ${name}:<agent>\` runs just one.\n\`kiln pack\` creates a distributable package.\n\`kiln install ./<package>.agent\` installs a package locally.\n`);
     await writeFile(join(root, "LICENSE"), "MIT License\n\nCopyright (c) Your Name\n"); await writeFile(join(root, ".gitignore"), "node_modules/\ndist/\n*.agent\n");
-    await writeFile(join(root, "src", "agent.ts"), `import { defineAgent } from "@kiln/sdk";\n\nexport default defineAgent({\n  name: "${name}",\n  async execute(ctx) {\n    // Agent logic goes here.\n  },\n});\n`); await writeFile(join(root, "src", "index.ts"), "export { default as agent } from \"./agent.js\";\n"); await writeFile(join(root, "src", "types.ts"), "export interface AgentInput {}\nexport interface AgentOutput {}\n");
+    await writeFile(join(root, "package.json"), JSON.stringify({ name, private: true, type: "module" }, null, 2));
+    await writeFile(join(root, "src", "agents", `${name}.ts`), this.buildAgentFileContent(name)); await writeFile(join(root, "src", "index.ts"), `export { default as ${name.replace(/-([a-z])/g, (_match, letter: string) => letter.toUpperCase())} } from "./agents/${name}.js";\n`); await writeFile(join(root, "src", "types.ts"), "export interface AgentInput { query?: string; }\nexport interface AgentOutput { markdown: string; }\n");
     const prompts: Record<string, string> = { "system.md": "# System Prompt\n\nDescribe the permanent behavior of the agent.\n", "developer.md": "# Developer Prompt\n\nDescribe implementation and engineering constraints.\n", "task.md": "# Task Prompt\n\nDescribe the task-specific instructions.\n", "examples.md": "# Examples\n\nAdd representative input/output examples here.\n", "safety.md": "# Safety\n\nDefine safety, privacy, and escalation boundaries.\n", "variables.yaml": "# Values are available as {{variableName}} in prompt layers.\ntask: \"\"\n" }; for (const [file, content] of Object.entries(prompts)) await writeFile(join(root, "prompts", file), content);
     await writeFile(join(root, "workflows", "main.yaml"), `name: main\n\nsteps:\n  - ${name}\n`); await Promise.all(["tools", "connectors", "memory"].map((directory) => writeFile(join(root, directory, ".gitkeep"), ""))); await writeFile(join(root, "knowledge", "project.md"), "# Project Knowledge\n\nStore domain facts, product context, and reference material here.\n"); await writeFile(join(root, "knowledge", "coding-guidelines.md"), "# Coding Guidelines\n\nDocument project conventions and quality expectations here.\n"); await writeFile(join(root, "tests", "agent.test.ts"), "// Add agent behavior tests here.\nexport {};\n");
     const configs: Record<string, string> = { "config.yaml": "project: " + name + "\n", "runtime.yaml": "provider: openai\nmodel: gpt-5.5\nmemory: true\nevents: true\ncheckpoints: true\nobservability: true\n", "providers.yaml": "default: openai\nproviders:\n  openai:\n    model: gpt-5.5\n  gemini:\n    model: gemini-2.5-pro\n  claude:\n    model: claude-sonnet\n", "observability.yaml": "enabled: true\n", "memory.yaml": "enabled: true\n", "checkpoints.yaml": "enabled: true\n", "events.yaml": "enabled: true\n" }; for (const [file, content] of Object.entries(configs)) await writeFile(join(root, ".kiln", file), content);

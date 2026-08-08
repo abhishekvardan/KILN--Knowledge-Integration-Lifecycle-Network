@@ -1,31 +1,53 @@
-# KILN CLI
+# kiln
 
-Knowledge Integration & Lifecycle Network.
+A CLI + SDK for building and orchestrating AI agents. Real provider calls (OpenAI, Groq, Ollama), an
+automatic tool-calling loop, self-correcting structured output, MCP support, and a DAG orchestrator with
+concurrency pooling and cascading failure isolation — so you write agent logic, not infrastructure.
 
-`kiln` is the command-line client for creating, validating, packaging, and managing AI-agent packages. Registry behavior is intentionally mocked so the local package architecture can be exercised without network access. Packages use the dedicated `.agent` extension; their `agent.yaml` manifest format is unchanged.
+**→ [KILN.md](./KILN.md) is the full reference** — written so an AI assistant can read it once and use
+kiln correctly. Point Claude/Cursor/whatever you use at that file; this README is just the map.
 
-## Usage
-
-```sh
-npm install
-npm run dev -- search reviewer
-npm run dev -- install github-reviewer.agent
-npm run dev -- list
-```
-
-Create and distribute a local package:
+## Install
 
 ```sh
-mkdir github-reviewer && cd github-reviewer
-kiln init
-kiln validate
-kiln pack
-kiln install github-reviewer-0.1.0.agent
-kiln info github-reviewer
+npm install @abhishekvardanbotta/kiln     # as a dependency, imported via createKiln()
+npm install -g @abhishekvardanbotta/kiln  # as a CLI, exposes the `kiln` command
 ```
 
-Use `kiln inspect <name>` for an installed package or pass an archive/directory. `kiln unpack` validates archive paths during extraction to block Zip Slip attacks. Build the CLI with `npm run build`, then run `kiln --help`.
+## 60-second tour
 
-`kiln run <package>` prepares an installed package and displays its execution plan; it does not call an AI provider. See [the runtime guide](docs/runtime.md) and [manifest specification](docs/spec.md).
+```sh
+kiln init my-agents && cd my-agents   # one project holds unlimited agents
+kiln agent add forecaster              # scaffolds src/agents/forecaster.ts
+kiln validate && kiln pack && kiln install my-agents-0.1.0.agent
+kiln run my-agents:forecaster --query "Tokyo"
+kiln logs <runId>                      # replay exactly what happened
+kiln serve --port 4500                 # REST + SSE over HTTP for any backend language
+```
 
-Configuration is initialized at `~/.kiln` with `config.json`, `installed.json`, `agents/`, and `cache/`.
+Or skip the CLI entirely and embed it in a Node/TypeScript backend:
+
+```ts
+import { createKiln } from "@abhishekvardanbotta/kiln";
+
+const kiln = createKiln();
+await kiln.orchestrate([
+  { id: "forecaster", agent: { directory: "./my-agents", agentName: "forecaster" }, input: { city: "Paris" } },
+  { id: "advisor", dependsOn: ["forecaster"], agent: { directory: "./my-agents", agentName: "advisor" },
+    input: (ctx) => ({ forecast: ctx.outputs.forecaster }) },
+]);
+```
+
+See **[KILN.md](./KILN.md)** for `defineAgent`/`defineTool`/`connectMCP`, the `ctx.ai` API
+(`chat`/`stream`/`json`/`run`/`object`), the orchestrator, the HTTP server's endpoints, provider setup,
+and common mistakes to avoid.
+
+## Status
+
+Providers: `openai` and `groq` (real, via a shared OpenAI-compatible adapter) and `ollama` (real, local)
+work today. `gemini` and `claude` are still stub adapters. Kiln's own package registry commands
+(`search`/`publish`/`login`) are currently mocked — no real network calls.
+
+## License
+
+MIT
